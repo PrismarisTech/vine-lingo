@@ -105,21 +105,28 @@ const App: React.FC = () => {
       >
         <div 
             className={`
-                flex items-center mb-2 transition-all duration-300
-                ${isSidebarCollapsed ? 'p-4 justify-center gap-0' : 'p-6 gap-3'}
+                flex flex-col transition-all duration-300
+                ${isSidebarCollapsed ? 'p-4 items-center' : 'p-6'}
             `}
         >
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-sm flex-shrink-0" style={{ backgroundColor: APP_ACCENT_COLOR }}>
-                V
+            <div className={`flex items-center gap-3 ${isSidebarCollapsed ? 'justify-center' : ''}`}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-sm flex-shrink-0" style={{ backgroundColor: APP_ACCENT_COLOR }}>
+                    V
+                </div>
+                <h1 
+                  className={`
+                    text-xl font-bold text-slate-800 dark:text-white tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300
+                    ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}
+                  `}
+                >
+                  Vine Lingo
+                </h1>
             </div>
-            <h1 
-              className={`
-                text-xl font-bold text-slate-800 dark:text-white tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300
-                ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}
-              `}
-            >
-              Vine Lingo
-            </h1>
+            {!isSidebarCollapsed && (
+                <p className="mt-1 text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-widest animate-fadeIn">
+                    The Unofficial Vine Dictionary
+                </p>
+            )}
         </div>
 
         <nav className={`flex-1 space-y-2 transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
@@ -167,11 +174,16 @@ const App: React.FC = () => {
         
         {/* Mobile Header */}
         <header className="md:hidden flex-none bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between z-20">
-          <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-sm" style={{ backgroundColor: APP_ACCENT_COLOR }}>
-                  V
+          <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm" style={{ backgroundColor: APP_ACCENT_COLOR }}>
+                      V
+                  </div>
+                  <h1 className="text-lg font-bold text-slate-800 dark:text-white tracking-tight">Vine Lingo</h1>
               </div>
-              <h1 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">Vine Lingo</h1>
+              <p className="mt-0.5 text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                  The Unofficial Vine Dictionary
+              </p>
           </div>
           <button
              onClick={toggleTheme}
