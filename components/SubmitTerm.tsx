@@ -5,6 +5,9 @@ import { APP_ACCENT_COLOR, CATEGORIES } from '../constants';
 import { TermCategory } from '../types';
 import { supabase } from '../supabaseClient';
 
+// Use a unique topic name for ntfy.sh
+const NTFY_TOPIC = 'vine-lingo-submissions'; 
+
 export const SubmitTerm: React.FC = () => {
   const [formData, setFormData] = useState({
     term: '',
@@ -14,6 +17,24 @@ export const SubmitTerm: React.FC = () => {
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+
+  const sendNtfyNotification = async (term: string, definition: string) => {
+    try {
+      await fetch(`https://ntfy.sh/${NTFY_TOPIC}`, {
+        method: 'POST',
+        body: `New Term: ${term}\nDefinition: ${definition}`,
+        headers: {
+          'Title': 'New Vine Lingo Submission',
+          'Priority': 'default',
+          'Tags': 'books,memo'
+        }
+      });
+    } catch (err) {
+      console.error('Ntfy notification failed:', err);
+      // We don't throw here because we don't want to show an error to the user 
+      // if the database save was actually successful.
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,12 +52,15 @@ export const SubmitTerm: React.FC = () => {
             definition: formData.definition,
             category: formData.category,
             example: formData.example || null,
-            tags: [], // Could add tag input later
+            tags: [],
             status: 'pending'
           }
         ]);
 
       if (error) throw error;
+
+      // Send notification to ntfy.sh
+      await sendNtfyNotification(formData.term, formData.definition);
 
       setStatus('success');
       setFormData({
