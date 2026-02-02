@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Book, MessageCircle, Info, PlusCircle, ChevronLeft, ChevronRight, Moon, Sun, Shield } from 'lucide-react';
 import { Glossary } from './components/Glossary';
 import { Assistant } from './components/Assistant';
@@ -18,6 +18,9 @@ enum Tab {
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(Tab.GLOSSARY);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showMobileHeader, setShowMobileHeader] = useState(true);
+  const [showMobileNav, setShowMobileNav] = useState(true);
+  const lastScrollY = useRef(0);
   
   // Initialize theme from localStorage or system preference
   const [isDark, setIsDark] = useState(() => {
@@ -43,6 +46,38 @@ const App: React.FC = () => {
   }, [isDark]);
 
   const toggleTheme = () => setIsDark(!isDark);
+
+  const handleGlobalScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    // Only apply to tabs other than Glossary, because Glossary handles its own 
+    // internal scrolling and reports back via the onScroll prop.
+    if (activeTab === Tab.GLOSSARY) return;
+
+    const currentScrollY = e.currentTarget.scrollTop;
+    const scrollingDown = currentScrollY > lastScrollY.current;
+    
+    if (scrollingDown && currentScrollY > 50) {
+      setShowMobileHeader(false);
+      setShowMobileNav(false);
+    } else {
+      setShowMobileNav(true);
+      if (currentScrollY <= 10) {
+        setShowMobileHeader(true);
+      }
+    }
+    lastScrollY.current = currentScrollY;
+  };
+
+  const handleGlossaryScroll = (scrollingDown: boolean, currentScrollY: number) => {
+    if (scrollingDown && currentScrollY > 50) {
+      setShowMobileHeader(false);
+      setShowMobileNav(false);
+    } else {
+      setShowMobileNav(true);
+      if (currentScrollY <= 10) {
+        setShowMobileHeader(true);
+      }
+    }
+  };
 
   // Common Nav Button logic
   const NavButton = ({ tab, icon: Icon, label }: { tab: Tab, icon: any, label: string }) => (
@@ -173,7 +208,7 @@ const App: React.FC = () => {
       <div className="flex-1 flex flex-col h-full relative min-w-0">
         
         {/* Mobile Header */}
-        <header className="md:hidden flex-none bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between z-20">
+        <header className={`md:hidden absolute top-0 left-0 right-0 h-16 bg-white dark:bg-slate-900 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between z-30 transition-transform duration-300 ${showMobileHeader ? 'translate-y-0' : '-translate-y-full'}`}>
           <div className="flex flex-col">
               <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm" style={{ backgroundColor: APP_ACCENT_COLOR }}>
@@ -195,38 +230,40 @@ const App: React.FC = () => {
 
         {/* Content Area */}
         <main className="flex-1 overflow-hidden relative flex flex-col bg-slate-50 dark:bg-slate-950">
-          {activeTab === Tab.GLOSSARY && <Glossary />}
-          {activeTab === Tab.ASSISTANT && <Assistant />}
-          {activeTab === Tab.SUBMIT && <SubmitTerm />}
-          {activeTab === Tab.ADMIN && <Admin />}
-          {activeTab === Tab.ABOUT && (
-            <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950">
-              <div className="p-6 space-y-4 max-w-2xl mx-auto w-full">
-                <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
-                  <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">About Vine Lingo</h2>
-                  <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed text-lg">
-                    This app is a quick-reference guide for Amazon Vine Voices. It helps demystify the acronyms and slang used in community forums and Discord servers.
-                  </p>
+          <div className="flex-1 overflow-y-auto pt-16 md:pt-0" onScroll={handleGlobalScroll}>
+            {activeTab === Tab.GLOSSARY && <Glossary onScroll={handleGlossaryScroll} />}
+            {activeTab === Tab.ASSISTANT && <Assistant />}
+            {activeTab === Tab.SUBMIT && <SubmitTerm />}
+            {activeTab === Tab.ADMIN && <Admin />}
+            {activeTab === Tab.ABOUT && (
+              <div className="flex-1 bg-slate-50 dark:bg-slate-950">
+                <div className="p-6 space-y-4 max-w-2xl mx-auto w-full">
+                  <div className="bg-white dark:bg-slate-900 p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-4">About Vine Lingo</h2>
+                    <p className="text-slate-600 dark:text-slate-400 mb-6 leading-relaxed text-lg">
+                      This app is a quick-reference guide for Amazon Vine Voices. It helps demystify the acronyms and slang used in community forums and Discord servers.
+                    </p>
+                    
+                    <div className="flex items-start gap-4 text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700/50">
+                      <Info className="w-6 h-6 flex-shrink-0" style={{ color: APP_ACCENT_COLOR }} />
+                      <span className="leading-relaxed">We are not affiliated with Amazon. This is an independent community resource created to help new and existing Vine Voices navigate the program.</span>
+                    </div>
+                  </div>
                   
-                  <div className="flex items-start gap-4 text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-4 rounded-xl border border-slate-100 dark:border-slate-700/50">
-                    <Info className="w-6 h-6 flex-shrink-0" style={{ color: APP_ACCENT_COLOR }} />
-                    <span className="leading-relaxed">We are not affiliated with Amazon. This is an independent community resource created to help new and existing Vine Voices navigate the program.</span>
+                  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
+                    <h3 className="font-semibold text-slate-800 dark:text-white mb-2">Credits</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
+                      Built with React, Tailwind, and Google Gemini.
+                    </p>
                   </div>
                 </div>
-                
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 transition-colors">
-                  <h3 className="font-semibold text-slate-800 dark:text-white mb-2">Credits</h3>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Built with React, Tailwind, and Google Gemini.
-                  </p>
-                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </main>
 
         {/* Mobile Bottom Navigation */}
-        <nav className="md:hidden flex-none bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 pb-safe pt-2 px-2 pb-4 z-20 transition-colors">
+        <nav className={`md:hidden absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 pb-safe pt-2 px-2 pb-4 z-30 transition-all duration-300 ${showMobileNav ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}`}>
           <div className="flex justify-around items-center">
             <NavButton tab={Tab.GLOSSARY} icon={Book} label="Glossary" />
             <NavButton tab={Tab.ASSISTANT} icon={MessageCircle} label="Assistant" />

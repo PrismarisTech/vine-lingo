@@ -1,12 +1,16 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, ChevronDown, ChevronUp, Hash, Loader2, Edit2, Trash2, Plus, X, Save } from 'lucide-react';
 import { APP_ACCENT_COLOR, CATEGORIES } from '../constants';
 import { TermCategory, Term } from '../types';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../AuthContext';
 
-export const Glossary: React.FC = () => {
+interface GlossaryProps {
+  onScroll?: (scrollingDown: boolean, currentScrollY: number) => void;
+}
+
+export const Glossary: React.FC<GlossaryProps> = ({ onScroll }) => {
   const { isAdmin } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<TermCategory>(TermCategory.ALL);
@@ -14,6 +18,8 @@ export const Glossary: React.FC = () => {
   const [terms, setTerms] = useState<Term[]>([]);
   const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showSearchBar, setShowSearchBar] = useState(true);
+  const lastScrollY = useRef(0);
   
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,6 +60,25 @@ export const Glossary: React.FC = () => {
     if (!isEditMode) {
       setExpandedId(expandedId === id ? null : id);
     }
+  };
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const currentScrollY = e.currentTarget.scrollTop;
+    const scrollingDown = currentScrollY > lastScrollY.current;
+    
+    // Logic for hiding/showing search bar
+    if (scrollingDown && currentScrollY > 50) {
+      setShowSearchBar(false);
+    } else {
+      setShowSearchBar(true);
+    }
+
+    // Call parent onScroll for top/bottom bars
+    if (onScroll) {
+      onScroll(scrollingDown, currentScrollY);
+    }
+
+    lastScrollY.current = currentScrollY;
   };
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
@@ -130,9 +155,9 @@ export const Glossary: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors">
+    <div className="flex flex-col h-full bg-slate-50 dark:bg-slate-950 transition-colors overflow-hidden">
       {/* Search and Filter Header */}
-      <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm border-b border-slate-100 dark:border-slate-800 px-4 py-3 space-y-3 transition-colors">
+      <div className={`sticky top-0 z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm shadow-sm border-b border-slate-100 dark:border-slate-800 px-4 py-3 space-y-3 transition-all duration-300 ${showSearchBar ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'}`}>
         <div className="max-w-5xl mx-auto w-full space-y-3">
           <div className="flex items-center gap-3">
             <div className="relative flex-1">
@@ -191,7 +216,7 @@ export const Glossary: React.FC = () => {
       </div>
 
       {/* Content List */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto px-4 py-4" onScroll={handleScroll}>
         <div className="max-w-5xl mx-auto w-full">
           {loading ? (
             <div className="flex justify-center items-center py-20">
