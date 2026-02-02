@@ -1,65 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
-import { Term, APP_ACCENT_COLOR } from '../constants'; // Note: Term interface is in types, but importing from constants might be wrong if not exported there. I should check imports.
+import { useAuth } from '../AuthContext';
 import { Term as TermType } from '../types';
 import { Loader2, Check, X, LogOut, ShieldAlert } from 'lucide-react';
+import { APP_ACCENT_COLOR } from '../constants';
 
 export const Admin: React.FC = () => {
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const { session, isAdmin, loading, signOut } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
   const [pendingTerms, setPendingTerms] = useState<TermType[]>([]);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) checkAdminStatus(session.user.id);
-      else setLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (session) checkAdminStatus(session.user.id);
-      else {
-        setIsAdmin(false);
-        setLoading(false);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkAdminStatus = async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', userId)
-        .single();
-      
-      if (error) throw error;
-      
-      if (data.role === 'admin') {
-        setIsAdmin(true);
-        fetchPendingTerms();
-      } else {
-        setIsAdmin(false);
-      }
-    } catch (error) {
-      console.error('Error checking admin status:', error);
-      setIsAdmin(false);
-    } finally {
-      setLoading(false);
+    if (isAdmin) {
+      fetchPendingTerms();
     }
-  };
+  }, [isAdmin]);
 
   const fetchPendingTerms = async () => {
     try {
@@ -95,10 +54,6 @@ export const Admin: React.FC = () => {
     }
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-  };
-
   const handleUpdateStatus = async (id: string, status: 'approved' | 'rejected') => {
     try {
       const { error } = await supabase
@@ -108,11 +63,8 @@ export const Admin: React.FC = () => {
 
       if (error) throw error;
 
-      // Remove from local state
       setPendingTerms(pendingTerms.filter(t => t.id !== id));
       setMessage({ type: 'success', text: `Term ${status} successfully` });
-      
-      // Clear message after 3 seconds
       setTimeout(() => setMessage(null), 3000);
     } catch (error: any) {
       console.error(`Error updating term status:`, error);
@@ -182,7 +134,7 @@ export const Admin: React.FC = () => {
         <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">Access Denied</h2>
         <p className="text-slate-600 dark:text-slate-400 mb-6">You do not have permission to view this area.</p>
         <button
-          onClick={handleLogout}
+          onClick={signOut}
           className="px-4 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium"
         >
           Sign Out
@@ -196,7 +148,7 @@ export const Admin: React.FC = () => {
       <div className="flex justify-between items-center p-6 border-b border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
         <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Review Submissions</h2>
         <button
-          onClick={handleLogout}
+          onClick={signOut}
           className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
         >
           <LogOut className="w-4 h-4" />
