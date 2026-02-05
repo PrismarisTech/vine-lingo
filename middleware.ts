@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-
 export const config = {
   matcher: '/',
 };
 
-export async function middleware(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const termId = searchParams.get('term');
+export async function middleware(req: Request) {
+  const url = new URL(req.url);
+  const termId = url.searchParams.get('term');
 
   // If there's no term ID, just continue to the normal app
   if (!termId) {
-    return NextResponse.next();
+    return new Response(null, {
+      headers: { 'x-middleware-next': '1' },
+    });
   }
 
   const userAgent = req.headers.get('user-agent') || '';
@@ -19,9 +19,14 @@ export async function middleware(req: NextRequest) {
   // If it's a bot, we want to serve a page with dynamic meta tags
   if (isBot) {
     // Rewrite to our dedicated share handler
-    return NextResponse.rewrite(new URL(`/api/share?term=${termId}`, req.url));
+    const shareUrl = new URL(`/api/share?term=${termId}`, req.url);
+    return new Response(null, {
+      headers: { 'x-middleware-rewrite': shareUrl.toString() },
+    });
   }
 
-  // For real users, just serve the normal app (the client-side React will handle the ?term= logic)
-  return NextResponse.next();
+  // For real users, just serve the normal app
+  return new Response(null, {
+    headers: { 'x-middleware-next': '1' },
+  });
 }

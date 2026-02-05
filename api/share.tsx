@@ -1,10 +1,8 @@
-import { NextRequest } from 'next/server';
-
 export const config = {
   runtime: 'edge',
 };
 
-export default async function handler(req: NextRequest) {
+export default async function handler(req: Request) {
   const { searchParams } = new URL(req.url);
   const termId = searchParams.get('term');
 
