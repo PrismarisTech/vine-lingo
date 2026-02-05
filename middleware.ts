@@ -1,12 +1,23 @@
 export const config = {
-  matcher: '/',
+  // Match all paths except for static assets (images, fonts, etc.)
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - assets (Vite static assets)
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|assets).*)',
+  ],
 };
 
 export async function middleware(req: Request) {
   const url = new URL(req.url);
   const termId = url.searchParams.get('term');
 
-  // If there's no term ID, just continue to the normal app
+  // We only care about requests with a term ID
   if (!termId) {
     return new Response(null, {
       headers: { 'x-middleware-next': '1' },
@@ -16,15 +27,13 @@ export async function middleware(req: Request) {
   const userAgent = req.headers.get('user-agent') || '';
   const isBot = /bot|facebookexternalhit|twitterbot|linkedinbot|whatsapp|telegram|discordbot/i.test(userAgent);
 
-  // If it's a bot, we serve the HTML with meta tags directly from the middleware
+  // If it's a bot, we serve the HTML with meta tags
   if (isBot) {
     try {
-      // Fetch term data from Supabase
       const supabaseUrl = process.env.VITE_SUPABASE_URL;
       const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
       if (!supabaseUrl || !supabaseKey) {
-        console.error('Missing Supabase environment variables in middleware');
         return new Response(null, { headers: { 'x-middleware-next': '1' } });
       }
 
@@ -49,8 +58,7 @@ export async function middleware(req: Request) {
       const description = term.definition;
       const ogImageUrl = `https://${url.host}/api/og?term=${termId}`;
 
-      const html = `
-<!DOCTYPE html>
+      const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -68,9 +76,9 @@ export async function middleware(req: Request) {
     <meta name="twitter:description" content="${description}">
     <meta name="twitter:image" content="${ogImageUrl}">
 </head>
-<body style="font-family: sans-serif; background: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0;">
-    <h1>${term.term}</h1>
-    <p style="max-width: 600px; text-align: center; line-height: 1.6;">${term.definition}</p>
+<body style="font-family: sans-serif; background: #0f172a; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; text-align: center;">
+    <h1 style="font-size: 3rem; margin-bottom: 1rem;">${term.term}</h1>
+    <p style="font-size: 1.5rem; max-width: 800px; line-height: 1.6; color: #cbd5e1;">${term.definition}</p>
     <script>window.location.href = "/?term=${termId}";</script>
 </body>
 </html>`.trim();
@@ -78,7 +86,7 @@ export async function middleware(req: Request) {
       return new Response(html, {
         headers: {
           'Content-Type': 'text/html',
-          'Cache-Control': 's-maxage=3600, stale-while-revalidate',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         },
       });
     } catch (error) {
@@ -87,7 +95,7 @@ export async function middleware(req: Request) {
     }
   }
 
-  // For real users, just serve the normal app
+  // For real users, just continue to the app
   return new Response(null, {
     headers: { 'x-middleware-next': '1' },
   });
