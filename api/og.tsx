@@ -22,12 +22,24 @@ function isUUID(str: string): boolean {
 
 export default async function handler(req: Request) {
   try {
-    const { searchParams } = new URL(req.url);
-    const termParam = searchParams.get('term');
+    const url = new URL(req.url);
+    const termParam = url.searchParams.get('term');
+    
+    // Handle OPTIONS request for CORS
+    if (req.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      });
+    }
 
     // If no term parameter, return default site OG image
     if (!termParam) {
-      return new ImageResponse(
+      const imageResponse = await new ImageResponse(
         (
           <div
             style={{
@@ -116,6 +128,14 @@ export default async function handler(req: Request) {
           height: 630,
         }
       );
+      
+      return new Response(imageResponse.body, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        },
+      });
     }
 
     // Fetch term data from Supabase directly in the Edge Function
@@ -125,7 +145,7 @@ export default async function handler(req: Request) {
     if (!supabaseUrl || !supabaseKey) {
       console.error('Missing Supabase environment variables');
       // Return default image if env vars are missing
-      return new ImageResponse(
+      const imageResponse = await new ImageResponse(
         (
           <div
             style={{
@@ -148,6 +168,14 @@ export default async function handler(req: Request) {
           height: 630,
         }
       );
+      
+      return new Response(imageResponse.body, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        },
+      });
     }
 
     let term: any = null;
@@ -187,7 +215,7 @@ export default async function handler(req: Request) {
       if (!response.ok) {
         console.error(`Supabase fetch failed: ${response.status}`);
         // Return default image on error
-        return new ImageResponse(
+        const imageResponse = await new ImageResponse(
           (
             <div
               style={{
@@ -210,6 +238,14 @@ export default async function handler(req: Request) {
             height: 630,
           }
         );
+        
+        return new Response(imageResponse.body, {
+          status: 200,
+          headers: {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+          },
+        });
       }
 
       const data = await response.json();
@@ -218,7 +254,7 @@ export default async function handler(req: Request) {
 
     if (!term) {
       // Return default image if term not found
-      return new ImageResponse(
+      const imageResponse = await new ImageResponse(
         (
           <div
             style={{
@@ -241,9 +277,17 @@ export default async function handler(req: Request) {
           height: 630,
         }
       );
+      
+      return new Response(imageResponse.body, {
+        status: 200,
+        headers: {
+          'Content-Type': 'image/png',
+          'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+        },
+      });
     }
 
-    return new ImageResponse(
+    const imageResponse = await new ImageResponse(
       (
         <div
           style={{
@@ -355,10 +399,18 @@ export default async function handler(req: Request) {
         height: 630,
       }
     );
+    
+    return new Response(imageResponse.body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      },
+    });
   } catch (e: any) {
     console.error('OG image generation error:', e);
     // Return a fallback image on error
-    return new ImageResponse(
+    const imageResponse = await new ImageResponse(
       (
         <div
           style={{
@@ -381,5 +433,13 @@ export default async function handler(req: Request) {
         height: 630,
       }
     );
+    
+    return new Response(imageResponse.body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600',
+      },
+    });
   }
 }
