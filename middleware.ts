@@ -31,6 +31,9 @@ export async function middleware(req: Request) {
       const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY;
 
       if (!supabaseUrl || !supabaseKey) {
+        if (isDebug) {
+          return new Response(`Missing Environment Variables: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY`, { status: 500 });
+        }
         return new Response(null, { headers: { 'x-middleware-next': '1' } });
       }
 
@@ -44,10 +47,20 @@ export async function middleware(req: Request) {
         }
       );
 
+      if (!response.ok) {
+        if (isDebug) {
+          return new Response(`Supabase Fetch Error: ${response.status} ${response.statusText}`, { status: 500 });
+        }
+        return new Response(null, { headers: { 'x-middleware-next': '1' } });
+      }
+
       const data = await response.json();
       const term = data[0];
 
       if (!term) {
+        if (isDebug) {
+          return new Response(`Term not found in database for ID: ${termId}`, { status: 404 });
+        }
         return new Response(null, { headers: { 'x-middleware-next': '1' } });
       }
 
@@ -103,8 +116,11 @@ export async function middleware(req: Request) {
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Middleware error:', error);
+      if (isDebug) {
+        return new Response(`Middleware Exception: ${error.message}`, { status: 500 });
+      }
       return new Response(null, { headers: { 'x-middleware-next': '1' } });
     }
   }
