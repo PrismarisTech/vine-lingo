@@ -33,8 +33,9 @@ function isUUID(str: string): boolean {
   return uuidRegex.test(str);
 }
 
-export async function middleware(req: Request) {
+export default async function middleware(req: Request) {
   const url = new URL(req.url);
+  const pathname = url.pathname;
   const termId = url.searchParams.get('term');
 
   // FORCE the bot detection to true for a specific debug parameter
@@ -111,6 +112,8 @@ export async function middleware(req: Request) {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'X-Middleware-Executed': 'true',
+          'X-Pathname': pathname,
         },
       });
     }
@@ -242,6 +245,8 @@ export async function middleware(req: Request) {
         headers: {
           'Content-Type': 'text/html; charset=utf-8', // Ensure UTF-8
           'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+          'X-Middleware-Executed': 'true',
+          'X-Pathname': pathname,
         },
       });
     } catch (error: any) {
