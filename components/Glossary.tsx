@@ -1,7 +1,6 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, ChevronDown, ChevronUp, Hash, Loader2, Edit2, Trash2, Plus, X, Save, Link as LinkIcon, Check, Download, Image as ImageIcon } from 'lucide-react';
-import { toPng } from 'html-to-image';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Search, ChevronDown, ChevronUp, Hash, Loader2, Edit2, Trash2, Plus, X, Save, Link as LinkIcon, Check } from 'lucide-react';
 import { APP_ACCENT_COLOR, CATEGORIES } from '../constants';
 import { TermCategory, Term } from '../types';
 import { supabase } from '../supabaseClient';
@@ -26,40 +25,6 @@ export const Glossary: React.FC<GlossaryProps> = ({ onScroll, showControls = tru
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTerm, setEditingTerm] = useState<Partial<Term> | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isCapturing, setIsCapturing] = useState<string | null>(null);
-
-  const handleDownloadImage = async (e: React.MouseEvent, id: string, termName: string) => {
-    e.stopPropagation();
-    const element = document.getElementById(`term-card-${id}`);
-    if (!element) return;
-
-    setIsCapturing(id);
-    try {
-      // Small delay to ensure any layout changes are settled
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      const dataUrl = await toPng(element, {
-        cacheBust: true,
-        backgroundColor: document.documentElement.classList.contains('dark') ? '#0f172a' : '#f8fafc',
-        style: {
-          borderRadius: '12px',
-          margin: '0',
-          padding: '20px',
-          width: element.offsetWidth + 'px',
-        }
-      });
-      
-      const link = document.createElement('a');
-      link.download = `vine-lingo-${termName.toLowerCase().replace(/\s+/g, '-')}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error('Error generating image:', err);
-      alert('Failed to generate image. Please try again.');
-    } finally {
-      setIsCapturing(null);
-    }
-  };
 
   useEffect(() => {
     fetchTerms();
@@ -114,56 +79,13 @@ export const Glossary: React.FC<GlossaryProps> = ({ onScroll, showControls = tru
     });
   }, [searchTerm, selectedCategory, terms, window.location.search]);
 
-  // Dynamic Metadata for Permalinks
+  // Update document title for the browser tab
   useEffect(() => {
     const isPermalinkMode = filteredTerms.length === 1 && new URLSearchParams(window.location.search).has('term');
-    
     if (isPermalinkMode) {
-      const term = filteredTerms[0];
-      const title = `${term.term} | Vine Lingo`;
-      const description = term.definition;
-      const url = window.location.href;
-
-      document.title = title;
-      
-      // Update meta tags helper
-      const updateMeta = (property: string, content: string, attr: string = 'property') => {
-        let el = document.querySelector(`meta[${attr}="${property}"]`);
-        if (!el) {
-          el = document.createElement('meta');
-          el.setAttribute(attr, property);
-          document.head.appendChild(el);
-        }
-        el.setAttribute('content', content);
-      };
-
-      updateMeta('description', description, 'name');
-      updateMeta('og:title', title);
-      updateMeta('og:description', description);
-      updateMeta('og:url', url);
-      updateMeta('twitter:title', title, 'name');
-      updateMeta('twitter:description', description, 'name');
-      updateMeta('twitter:url', url, 'name');
+      document.title = `${filteredTerms[0].term} | Vine Lingo`;
     } else {
-      // Reset to defaults
-      const defaultTitle = 'Vine Lingo | The Unofficial Vine Dictionary';
-      const defaultDesc = 'A modern, mobile-friendly glossary for the Amazon Vine community. Demystifying acronyms and slang like ETV, RFY, AFA, and more.';
-      const defaultUrl = 'https://vine-lingo.vercel.app/';
-
-      document.title = defaultTitle;
-      
-      const updateMeta = (property: string, content: string, attr: string = 'property') => {
-        const el = document.querySelector(`meta[${attr}="${property}"]`);
-        if (el) el.setAttribute('content', content);
-      };
-
-      updateMeta('description', defaultDesc, 'name');
-      updateMeta('og:title', defaultTitle);
-      updateMeta('og:description', defaultDesc);
-      updateMeta('og:url', defaultUrl);
-      updateMeta('twitter:title', defaultTitle, 'name');
-      updateMeta('twitter:description', defaultDesc, 'name');
-      updateMeta('twitter:url', defaultUrl, 'name');
+      document.title = 'Vine Lingo | The Unofficial Vine Dictionary';
     }
   }, [filteredTerms]);
 
@@ -379,7 +301,6 @@ export const Glossary: React.FC<GlossaryProps> = ({ onScroll, showControls = tru
               {filteredTerms.map((term) => (
                 <div 
                   key={term.id} 
-                  id={`term-card-${term.id}`}
                   onClick={() => toggleExpand(term.id)}
                   className={`
                     bg-white dark:bg-slate-900 rounded-xl shadow-sm border overflow-hidden transition-all duration-200 h-fit 
@@ -402,14 +323,6 @@ export const Glossary: React.FC<GlossaryProps> = ({ onScroll, showControls = tru
                         <div className="flex gap-1">
                             {!isEditMode && (
                                 <>
-                                  <button 
-                                    onClick={(e) => handleDownloadImage(e, term.id, term.term)}
-                                    className="p-1.5 rounded-lg text-slate-400 hover:text-[#09BE82] hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                                    title="Download as Image"
-                                    disabled={isCapturing === term.id}
-                                  >
-                                    {isCapturing === term.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
-                                  </button>
                                   {!isPermalinkMode && (
                                     <button 
                                       onClick={(e) => handleCopyPermalink(e, term.id)}
