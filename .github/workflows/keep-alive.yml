@@ -4,6 +4,7 @@ on:
   schedule:
     # Runs every 6 hours to ensure the project stays active
     - cron: '0 */6 * * *'
+  workflow_dispatch:
 
 jobs:
   ping-supabase:
