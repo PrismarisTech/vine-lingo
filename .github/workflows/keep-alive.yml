@@ -10,23 +10,23 @@ jobs:
   ping-supabase:
     runs-on: ubuntu-latest
     steps:
-      - name: Debug Secrets
+      - name: Debug and Send Request
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
-          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
-            echo "SUPABASE_URL is not set!"
+          # Debug step
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "Error: SUPABASE_URL secret is not set."
             exit 1
-          else
-            echo "SUPABASE_URL is set."
           fi
-          if [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
-            echo "SUPABASE_ANON_KEY is not set!"
+          if [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Error: SUPABASE_ANON_KEY secret is not set."
             exit 1
-          else
-            echo "SUPABASE_ANON_KEY is set."
           fi
+          echo "Secrets are set. Pinging Supabase..."
 
-      - name: Send Request to Supabase
-        run: |
-          curl --fail -I -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/terms?limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+          # Request step
+          curl --fail -I -X GET "$SUPABASE_URL/rest/v1/terms?limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY"
