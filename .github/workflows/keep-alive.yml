@@ -2,17 +2,15 @@ name: Keep Supabase Alive
 
 on:
   schedule:
-    # Runs every day at midnight
-    - cron: '0 0 * * *'
+    # Runs every 6 hours to ensure the project stays active
+    - cron: '0 */6 * * *'
 
 jobs:
-  build:
+  ping-supabase:
     runs-on: ubuntu-latest
     steps:
       - name: Send Request to Supabase
         run: |
-          curl -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/echo" \
+          curl --fail -I -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/terms?limit=1" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Content-Type: application/json" \
-            -d '{"data": "ping"}'
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
