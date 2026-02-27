@@ -10,6 +10,21 @@ jobs:
   ping-supabase:
     runs-on: ubuntu-latest
     steps:
+      - name: Debug Secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "SUPABASE_URL is not set!"
+            exit 1
+          else
+            echo "SUPABASE_URL is set."
+          fi
+          if [ -z "${{ secrets.SUPABASE_ANON_KEY }}" ]; then
+            echo "SUPABASE_ANON_KEY is not set!"
+            exit 1
+          else
+            echo "SUPABASE_ANON_KEY is set."
+          fi
+
       - name: Send Request to Supabase
         run: |
           curl --fail -I -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/terms?limit=1" \
